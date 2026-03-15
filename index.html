@@ -4,75 +4,642 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="ClipMaker - Extraia os melhores momentos de vídeos com inteligência generativa e Cloudinary">
     <title>ClipMaker</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <!-- Tailwind CSS (CDN) -->
+    <script>
+        window.tailwind = {
+            config: {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        colors: {
+                            brand: {
+                                50: '#f5f3ff',
+                                100: '#ede9fe',
+                                200: '#e0d7fe',
+                                300: '#c7b5fd',
+                                400: '#a78bfa',
+                                500: '#8b5cf6',
+                                600: '#7c3aed',
+                                700: '#6d28d9',
+                                800: '#5b21b6',
+                                900: '#4c1d95'
+                            }
+                        },
+                        boxShadow: {
+                            soft: '0 10px 30px rgba(15, 23, 42, 0.08)',
+                            softMd: '0 20px 50px rgba(15, 23, 42, 0.08)'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.346.0/dist/umd/lucide.js"></script>
+
+    <!-- GSAP + ScrollTrigger -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"
+        integrity="sha512-T+6sxtM2sK41vFWOmtbhRKLf1y8Im4AkQF3V3yRkFm/MBqqmrn+ckxO3z3VROaRs13g77tFYGN5OZc1L+uv8yQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"
+        integrity="sha512-64kszRr3xmaWsApnVtbzZK4OIN2jMqNJpMRXWj7iV+Q47Oe4ERvOWFaCqHgkMTww+sP/wl1fZ1dONJSM1C8tVQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <style>
+        /* Dark mode overrides (Tailwind CDN builds only the classes used in HTML) */
+        html.dark body {
+            background-image: linear-gradient(135deg, #0b1220 0%, #121b2b 50%, #0b1220 100%);
+            color: #f8fafc;
+        }
+
+        html.dark .text-slate-900 {
+            color: #f1f5f9 !important;
+        }
+
+        /* Force this icon to stay dark in dark mode */
+        html.dark .icon-black {
+            color: rgba(15, 23, 42, 0.95) !important;
+        }
+
+        /* Keep this icon purple in dark mode (matches logo) */
+        html.dark .icon-purple {
+            color: #7c3aed !important;
+        }
+
+        html.dark .text-slate-500 {
+            color: rgba(226, 232, 240, 0.85) !important;
+        }
+
+        /* Nav links in dark mode should remain light for readability */
+        html.dark .text-slate-600 {
+            color: rgba(226, 232, 240, 0.85) !important;
+        }
+
+        /* Inputs in dark mode should use a darker text and placeholder */
+        html.dark input#apiKey {
+            color: rgba(15, 23, 42, 0.9) !important;
+        }
+
+        html.dark input#apiKey::placeholder {
+            color: rgba(15, 23, 42, 0.6) !important;
+        }
+
+        /* Upload button in dark mode should match the logo gradient */
+        html.dark #uploadWidget {
+            background-image: linear-gradient(135deg, #a855f7, #9333ea, #7e22ce) !important;
+            color: white !important;
+            border-color: rgba(255, 255, 255, 0.25) !important;
+        }
+
+        html.dark .bg-white\/40 {
+            background-color: rgba(15, 23, 42, 0.52) !important;
+        }
+
+        html.dark #videoPlaceholder {
+            color: rgba(15, 23, 42, 0.8) !important;
+        }
+
+        html.dark .bg-white\/50 {
+            background-color: rgba(15, 23, 42, 0.60) !important;
+        }
+
+        /* Keep this specific icon background white in dark mode */
+        html.dark .keep-white-bg {
+            background-color: rgba(255, 255, 255, 0.5) !important;
+        }
+
+        html.dark .border-white\/20 {
+            border-color: rgba(248, 250, 252, 0.15) !important;
+        }
+
+        html.dark .bg-slate-100 {
+            background-color: #0f172a !important;
+        }
+
+        html.dark .bg-slate-50 {
+            background-color: #0b1220 !important;
+        }
+
+        /* Loading wave animation for status messages */
+        .wave-letter {
+            display: inline-block;
+            animation: wave 1s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-0.2em);
+            }
+        }
+    </style>
 </head>
 
-<body>
-    <h1>ClipMaker</h1>
-    <button id="upload_widget" class="cloudinary-button">Upload files</button>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 text-slate-900 antialiased">
+    <div class="relative overflow-hidden">
+        <header class="fixed inset-x-0 top-0 z-40 border-b border-white/20 bg-white/20 backdrop-blur-md">
+            <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
+                <a href="#" class="flex items-center gap-3">
+                    <span
+                        class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 shadow-soft">
+                        <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 2h-3a2 2 0 0 0-2 2v3" />
+                            <path d="M6 22h12a2 2 0 0 0 2-2v-7h-4v6H8v-6H4v7a2 2 0 0 0 2 2z" />
+                            <path d="M8 11h8" />
+                        </svg>
+                    </span>
+                    <div class="text-sm font-semibold tracking-tight text-slate-900">
+                        ClipMaker
+                        <p class="text-xs font-medium text-slate-500">Momentos virais em segundos</p>
+                    </div>
+                </a>
+
+                <nav class="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
+                    <a href="#features" class="transition hover:text-slate-900 hover:underline">Recursos</a>
+                    <a href="#workflow" class="transition hover:text-slate-900 hover:underline">Como funciona</a>
+                </nav>
+
+                <div class="flex items-center gap-3">
+                    <button id="themeToggle"
+                        class="inline-flex items-center justify-center rounded-full border border-white/30 bg-white/30 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm backdrop-blur transition hover:bg-white/40 hover:text-slate-900 focus:outline-none focus:ring-4 focus:ring-brand-200">
+                        <span id="themeIcon" class="mr-2 h-4 w-4" aria-hidden="true"></span>
+                        Tema
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="pt-28">
+            <section class="relative overflow-hidden py-32" data-animate="fade">
+                <div class="mx-auto max-w-6xl px-4 sm:px-6">
+                    <div class="grid gap-16 lg:grid-cols-12 lg:items-center">
+                        <div class="lg:col-span-6">
+                            <h1 class="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+                                Extraia o melhor momento em um clique.
+                            </h1>
+                            <p class="mt-6 max-w-xl text-base leading-relaxed text-slate-500 sm:text-lg">
+                                Use IA generativa e a cadeia de processamento de vídeo do Cloudinary para converter
+                                transcrições em cortes virais automaticamente.
+                            </p>
+
+                            <div class="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
+                                <div class="relative flex-1">
+                                    <label for="apiKey" class="sr-only">API Key Gemini</label>
+                                    <input id="apiKey" type="text" autocomplete="off"
+                                        placeholder="Digite sua API Key do Gemini"
+                                        class="w-full rounded-2xl border border-slate-200 bg-white/70 px-4 py-3 text-sm font-medium text-slate-900 shadow-soft backdrop-blur focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100 transition" />
+                                </div>
+                                <button id="uploadWidget"
+                                    class="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 px-6 py-3 text-sm font-semibold text-white shadow-soft transition hover:opacity-90 hover:shadow-xl hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-purple-200">
+                                    <span data-lucide="cloud-upload" class="text-black icon-black"></span>
+                                    Enviar vídeo
+                                </button>
+                            </div>
+
+                            <p id="status" class="mt-4 text-sm font-medium text-slate-500"></p>
+
+                            <div class="mt-10 flex flex-wrap items-center gap-4 text-sm text-slate-600">
+                                <div
+                                    class="items-center gap-2 rounded-full bg-white/50 px-4 py-2 shadow-sm backdrop-blur">
+                                    <span data-lucide="zap" class="h-4 w-4"></span>
+                                    <span>Tempo médio: 30s</span>
+                                </div>
+                                <div
+                                    class="items-center gap-2 rounded-full bg-white/50 px-4 py-2 shadow-sm backdrop-blur">
+                                    <span data-lucide="shield" class="h-4 w-4"></span>
+                                    <span>Seguro e sem cadastro</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-6" aria-hidden="true">
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-0 rounded-3xl bg-gradient-to-br from-brand-500/40 via-indigo-500/20 to-transparent blur-3xl">
+                                </div>
+                                <div
+                                    class="relative overflow-hidden rounded-3xl border border-white/20 bg-white/40 shadow-soft backdrop-blur">
+                                    <div class="bg-gradient-to-br from-slate-50 via-white to-slate-50">
+                                        <div id="videoPlaceholder"
+                                            class="flex h-[280px] items-center justify-center text-center text-sm font-medium text-slate-500">
+                                            O vídeo aparecerá aqui quando estiver pronto.
+                                        </div>
+
+                                        <video id="video" controls
+                                            class="mx-auto w-auto max-w-full max-h-[70vh] object-contain hidden"
+                                            poster="" aria-label="Visualizador de corte gerado"></video>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="features" class="py-24" data-animate="fade">
+                <div class="mx-auto max-w-6xl px-4 sm:px-6">
+                    <div class="text-center">
+                        <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Recursos que aceleram
+                            seu fluxo</h2>
+                        <p class="mt-4 mx-auto max-w-2xl text-base text-slate-500">
+                            Gaussian builds intent into every step. From upload to final clip, tudo otimizado para
+                            velocidade e clareza.
+                        </p>
+                    </div>
+
+                    <div class="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <article
+                            class="group rounded-3xl border border-white/20 bg-white/50 p-8 shadow-soft transition hover:shadow-xl hover:scale-[1.02]"
+                            data-animate="slide">
+                            <div
+                                class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 icon-black">
+                                <span data-lucide="clock" class="h-6 w-6"><svg xmlns="http://www.w3.org/2000/svg"
+                                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="lucide lucide-clock-check-icon lucide-clock-check">
+                                        <path d="M12 6v6l4 2" />
+                                        <path d="M22 12a10 10 0 1 0-11 9.95" />
+                                        <path d="m22 16-5.5 5.5L14 19" />
+                                    </svg></span>
+                            </div>
+                            <h3 class="mt-6 text-lg font-semibold tracking-tight text-slate-900">Processamento rápido
+                            </h3>
+                            <p class="mt-2 text-sm leading-relaxed text-slate-500">
+                                Acompanhe resultados em segundos com chamadas assíncronas e load equilibrado no
+                                Cloudinary.
+                            </p>
+                        </article>
+
+                        <article
+                            class="group rounded-3xl border border-white/20 bg-white/50 p-8 shadow-soft transition hover:shadow-xl hover:scale-[1.02]"
+                            data-animate="slide">
+                            <div
+                                class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 icon-purple">
+                                <span data-lucide="music" class="h-6 w-6"><svg xmlns="http://www.w3.org/2000/svg"
+                                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="lucide lucide-align-horizontal-justify-center-icon lucide-align-horizontal-justify-center">
+                                        <rect width="6" height="14" x="2" y="5" rx="2" />
+                                        <rect width="6" height="10" x="16" y="7" rx="2" />
+                                        <path d="M12 2v20" />
+                                    </svg></span>
+                            </div>
+                            <h3 class="mt-6 text-lg font-semibold tracking-tight text-slate-900">Corte inteligente</h3>
+                            <p class="mt-2 text-sm leading-relaxed text-slate-500">
+                                O modelo identifica o momento mais envolvente do vídeo e gera o trecho perfeito para
+                                engajamento.
+                            </p>
+                        </article>
+
+                        <article
+                            class="group rounded-3xl border border-white/20 bg-white/50 p-8 shadow-soft transition hover:shadow-xl hover:scale-[1.02]"
+                            data-animate="slide">
+                            <div
+                                class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                                <span data-lucide="shield-check" class="h-6 w-6"><svg xmlns="http://www.w3.org/2000/svg"
+                                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                        class="lucide lucide-badge-check-icon lucide-badge-check">
+                                        <path
+                                            d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
+                                        <path d="m9 12 2 2 4-4" />
+                                    </svg></span>
+                            </div>
+                            <h3 class="mt-6 text-lg font-semibold tracking-tight text-slate-900">Privacidade em primeiro
+                                lugar</h3>
+                            <p class="mt-2 text-sm leading-relaxed text-slate-500">
+                                Suas chaves ficam no seu navegador. Nenhum dado é armazenado permanentemente no
+                                servidor.
+                            </p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section id="workflow" class="py-28" data-animate="fade">
+                <div class="mx-auto max-w-6xl px-4 sm:px-6">
+                    <div class="grid gap-12 lg:grid-cols-12 lg:items-center">
+                        <div class="lg:col-span-5">
+                            <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Workflow fluido em
+                                3 passos</h2>
+                            <p class="mt-4 text-base text-slate-500">
+                                Suba um vídeo, deixe a IA fazer o resto e compartilhe o momento viral em poucos
+                                segundos.
+                            </p>
+                        </div>
+
+                        <div class="lg:col-span-7">
+                            <div class="grid gap-6 sm:grid-cols-3">
+                                <div class="rounded-3xl border border-white/20 bg-white/50 p-8 shadow-soft transition hover:shadow-xl hover:scale-[1.02]"
+                                    data-animate="slide">
+                                    <div
+                                        class="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-slate-900 icon-dark">
+                                        <span data-lucide="upload" class="h-6 w-6 text-black icon-black"><svg
+                                                xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-arrow-big-up-dash-icon lucide-arrow-big-up-dash">
+                                                <path
+                                                    d="M9 13a1 1 0 0 0-1-1H5.061a1 1 0 0 1-.75-1.811l6.836-6.835a1.207 1.207 0 0 1 1.707 0l6.835 6.835a1 1 0 0 1-.75 1.811H16a1 1 0 0 0-1 1v2a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z" />
+                                                <path d="M9 20h6" />
+                                            </svg></span>
+                                    </div>
+                                    <h3 class="mt-5 text-lg font-semibold tracking-tight text-slate-900">1. Envie</h3>
+                                    <p class="mt-2 text-sm text-slate-500">Selecione seu vídeo no widget e comece o
+                                        processamento imediatamente.</p>
+                                </div>
+                                <div class="rounded-3xl border border-white/20 bg-white/50 p-8 shadow-soft transition hover:shadow-xl hover:scale-[1.02]"
+                                    data-animate="slide">
+                                    <div
+                                        class="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                                        <span data-lucide="cpu" class="h-6 w-6"><svg xmlns="http://www.w3.org/2000/svg"
+                                                width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                class="lucide lucide-list-checks-icon lucide-list-checks">
+                                                <path d="M13 5h8" />
+                                                <path d="M13 12h8" />
+                                                <path d="M13 19h8" />
+                                                <path d="m3 17 2 2 4-4" />
+                                                <path d="m3 7 2 2 4-4" />
+                                            </svg></span>
+                                    </div>
+                                    <h3 class="mt-5 text-lg font-semibold tracking-tight text-slate-900">2. Analise</h3>
+                                    <p class="mt-2 text-sm text-slate-500">A IA avalia sua transcrição e escolhe o
+                                        trecho de maior impacto.</p>
+                                </div>
+                                <div class="rounded-3xl border border-white/20 bg-white/50 p-8 shadow-soft transition hover:shadow-xl hover:scale-[1.02]"
+                                    data-animate="slide">
+                                    <div
+                                        class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                                        <span data-lucide="share-2" class="h-6 w-6"><svg
+                                                xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round"
+                                                class="lucide lucide-share2-icon lucide-share-2">
+                                                <circle cx="18" cy="5" r="3" />
+                                                <circle cx="6" cy="12" r="3" />
+                                                <circle cx="18" cy="19" r="3" />
+                                                <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" />
+                                                <line x1="15.41" x2="8.59" y1="6.51" y2="10.49" />
+                                            </svg></span>
+                                    </div>
+                                    <h3 class="mt-5 text-lg font-semibold tracking-tight text-slate-900">3. Compartilhe
+                                    </h3>
+                                    <p class="mt-2 text-sm text-slate-500">Assista ao resultado e copie o link para
+                                        postar onde quiser.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="border-t border-white/15 bg-white/20 py-12">
+            <div class="mx-auto max-w-6xl px-4 sm:px-6">
+                <div class="flex flex-col items-center justify-between gap-6 md:flex-row">
+                    <div class="text-center md:text-left">
+                        <p class="text-sm font-semibold text-slate-900">ClipMaker</p>
+                        <p class="mt-1 text-xs text-slate-500">Feito com Tailwind, GSAP.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-500">
+                        <a href="#" class="transition hover:text-slate-900">Termos</a>
+                        <a href="#" class="transition hover:text-slate-900">Privacidade</a>
+                        <a href="#" class="transition hover:text-slate-900">Suporte</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
 
     <script src="https://upload-widget.cloudinary.com/latest/global/all.js" type="text/javascript"></script>
+    <script>
+        const el = {
+            status: document.getElementById('status'),
+            video: document.getElementById('video'),
+            placeholder: document.getElementById('videoPlaceholder'),
+            apiKey: document.getElementById('apiKey'),
+            button: document.getElementById('uploadWidget'),
+            themeToggle: document.getElementById('themeToggle')
+        }
 
-    <script type="text/javascript">
+        const updateVideoPlaceholder = () => {
+            const hasVideoSrc = Boolean(el.video.getAttribute('src'))
+            el.placeholder.style.display = hasVideoSrc ? 'none' : 'flex'
+            el.video.classList.toggle('hidden', !hasVideoSrc)
+        }
+
+        updateVideoPlaceholder()
+
+        let currentWaveMessage = ''
+
+        const createWaveText = (text) =>
+            text
+                .split('')
+                .map((char, index) => {
+                    if (char === ' ') return '&nbsp;'
+                    return `<span class="wave-letter" style="animation-delay: ${index * 0.05
+                        }s">${char}</span>`
+                })
+                .join('')
+
+        const log = (message) => {
+            const isLoading = /\.{3,}$/.test(message.trim())
+
+            if (isLoading) {
+                if (message === currentWaveMessage) return
+                currentWaveMessage = message
+                el.status.innerHTML = createWaveText(message)
+            } else {
+                currentWaveMessage = ''
+                el.status.textContent = message
+            }
+        }
 
         const app = {
             transcriptionURL: '',
             public_id: '',
             waitForTranscription: async () => {
-                const maxAttempts = 30;
-                const delay = 2000;
+                const maxAttempts = 30
+                const delay = 2000
 
                 for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-                    const url = `https://res.cloudinary.com/${config.cloudName}/raw/upload/v${Date.now()}/${app.public_id}.transcript`;
-
+                    const url = `https://res.cloudinary.com/${config.cloudName}/raw/upload/v${Date.now()}/${app.public_id}.transcript`
                     try {
-                        console.log(`Tentativa ${attempt}/${maxAttempts}: Verificando transcrição...`);
-                        const response = await fetch(url);
-
+                        log(`Fazendo transcrição...`)
+                        const response = await fetch(url)
                         if (response.ok) {
-                            app.transcriptionURL = url;
-                            console.log('Transcrição encontrada!', url);
+                            app.transcriptionURL = url
+                            log('Transcrição encontrada 🎉')
                             return true
                         }
                     } catch (error) {
-                        console.log(`Tentativa ${attempt} falhou:`, error.message);
+                        log(`Falha na tentativa ${attempt}: ${error.message}`)
                     }
 
-                    // Aguarda antes da próxima tentativa (exceto a última)
                     if (attempt < maxAttempts) {
-                        await new Promise(resolve => setTimeout(resolve, delay));
+                        await new Promise((resolve) => setTimeout(resolve, delay))
                     }
                 }
 
-                console.log('Transcrição não encontrada após todas as tentativas.');
+                log('Transcrição não encontrada após todas as tentativas.')
                 return false
             },
             getTranscription: async () => {
-                const response = await fetch(app.transcriptionURL);
+                const response = await fetch(app.transcriptionURL)
                 return response.text()
             },
             getViralMoment: async () => {
                 const transcription = await app.getTranscription()
-            },
+                const model = 'gemini-3-flash-preview'
+                const endPointGemini = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
+
+                const prompt = `Role: You are a professional video editor specializing in viral content.\nTask: Analyze the transcription below and identify the most engaging, funny, or surprising segment.\nConstraints:\n1. Duration: Minimum 30 seconds, Maximum 60 seconds.\n2. Format: Return ONLY the start and end string for Cloudinary. Format: so_<start_seconds>,eo_<end_seconds>\n3. Examples: "so_10,eo_20" or "so_12.5,eo_45.2"\n4. CRITICAL: Do not use markdown, do not use quotes, do not explain. Return ONLY the raw string.\n\nTranscription: ${transcription}`
+
+                const headers = {
+                    'x-goog-api-key': el.apiKey.value,
+                    'Content-Type': 'application/json'
+                }
+
+                const contents = [{ parts: [{ text: prompt }] }]
+
+                const maxAttempts = 3
+                const delay = 1500
+
+                for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                    try {
+                        log(`Solicitando trecho viral...`)
+                        const response = await fetch(endPointGemini, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({ contents })
+                        })
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`)
+                        }
+
+                        const data = await response.json()
+                        const rawText = data.candidates[0].content.parts[0].text
+                        return rawText.replace(/```/g, '').replace(/json/g, '').trim()
+                    } catch (error) {
+                        const isLastAttempt = attempt === maxAttempts
+                        log(`Gemini falhou (tentativa ${attempt}/${maxAttempts}): ${error.message}`)
+                        if (isLastAttempt) {
+                            throw error
+                        }
+                        await new Promise((resolve) => setTimeout(resolve, delay))
+                    }
+                }
+            }
         }
 
         const config = {
             cloudName: 'db7fibnvc',
             uploadPreset: 'upload_nlw'
-        };
+        }
 
         const myWidget = cloudinary.createUploadWidget(config, async (error, result) => {
-            if (!error && result && result.event === "success") {
-                console.log('Done! Here is the image info: ', result.info);
-                app.public_id = result.info.public_id;
-                const isReady = await app.waitForTranscription();
-            }
-        }
-        )
+            if (!error && result && result.event === 'success') {
+                log('Upload concluído – processando vídeo...')
+                app.public_id = result.info.public_id
+                try {
+                    const isReady = await app.waitForTranscription()
+                    if (!isReady) {
+                        throw new Error('Erro ao buscar transcrição')
+                    }
 
-        document.getElementById("upload_widget").addEventListener("click", function () {
-            myWidget.open();
-        }, false);
+                    const viralMoment = await app.getViralMoment()
+                    const viralMomentURL = `https://res.cloudinary.com/${config.cloudName}/video/upload/${viralMoment}/${app.public_id}.mp4`
+                    el.video.setAttribute('src', viralMomentURL)
+                    updateVideoPlaceholder()
+                    log('Vídeo pronto — divirta-se!')
+                } catch (error) {
+                    log(`Erro: ${error.message || error}`)
+                }
+            }
+        })
+
+        el.button.addEventListener('click', function () {
+            if (!el.apiKey.value) {
+                alert('Por favor, insira sua API do Gemini primeiro.')
+                el.apiKey.focus()
+                return
+            }
+            myWidget.open()
+        })
+
+        const themeIcon = document.getElementById('themeIcon')
+        const setThemeIcon = (isDark) => {
+            if (!themeIcon) return
+            const icons = {
+                sun: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>`,
+                moon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
+            }
+            themeIcon.innerHTML = icons[isDark ? 'moon' : 'sun']
+        }
+
+        el.themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark')
+            const isDark = document.documentElement.classList.contains('dark')
+            localStorage.setItem('clipmakerTheme', isDark ? 'dark' : 'light')
+            setThemeIcon(isDark)
+        })
+
+        // Persist theme
+        const isDarkMode = localStorage.getItem('clipmakerTheme') === 'dark'
+        if (isDarkMode) {
+            document.documentElement.classList.add('dark')
+        }
+        setThemeIcon(isDarkMode)
+
+        // GSAP animations
+        gsap.registerPlugin(ScrollTrigger)
+
+        gsap.utils.toArray('[data-animate="fade"]').forEach((element) => {
+            gsap.from(element, {
+                opacity: 0,
+                y: 40,
+                duration: 0.8,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: element,
+                    start: 'top 90%'
+                }
+            })
+        })
+
+        gsap.utils.toArray('[data-animate="slide"]').forEach((element) => {
+            gsap.from(element, {
+                opacity: 0,
+                x: 60,
+                duration: 0.8,
+                ease: 'power3.out',
+                scrollTrigger: {
+                    trigger: element,
+                    start: 'top 80%'
+                }
+            })
+        })
+
+        // Lucide icons init
+        if (window.lucide && lucide.replace) {
+            lucide.replace()
+        }
     </script>
 </body>
 
