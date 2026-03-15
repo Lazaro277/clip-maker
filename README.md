@@ -2,6 +2,8 @@
 
 ClipMaker é um protótipo de interface para extrair momentos virais de vídeos usando IA, Cloudinary e geração de transcrições.
 
+Veja funcionando [aqui]([https://seu-link-aqui.com](https://lazaro277.github.io/clip-maker/))
+
 ## Estrutura do Projeto
 
 - `index.html` — página principal com UI para inserir API Key, enviar vídeo e exibir o preview.
