@@ -83,15 +83,6 @@
             color: rgba(226, 232, 240, 0.85) !important;
         }
 
-        /* Inputs in dark mode should use a darker text and placeholder */
-        html.dark input#apiKey {
-            color: rgba(15, 23, 42, 0.9) !important;
-        }
-
-        html.dark input#apiKey::placeholder {
-            color: rgba(15, 23, 42, 0.6) !important;
-        }
-
         /* Upload button in dark mode should match the logo gradient */
         html.dark #uploadWidget {
             background-image: linear-gradient(135deg, #a855f7, #9333ea, #7e22ce) !important;
@@ -198,10 +189,10 @@
 
                             <div class="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
                                 <div class="relative flex-1">
-                                    <label for="apiKey" class="sr-only">API Key Gemini</label>
-                                    <input id="apiKey" type="password" autocomplete="off"
-                                        placeholder="Digite sua API Key do Gemini"
-                                        class="w-full rounded-2xl border border-slate-200 bg-white/70 px-4 py-3 text-sm font-medium text-slate-900 shadow-soft backdrop-blur focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100 transition" />
+                                    <div
+                                        class="w-full rounded-2xl border border-slate-200 bg-white/70 px-4 py-3 text-sm font-medium text-slate-500 shadow-soft backdrop-blur">
+                                        Demonstração do projeto — nenhuma credencial é solicitada
+                                    </div>
                                 </div>
                                 <button id="uploadWidget"
                                     class="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 px-6 py-3 text-sm font-semibold text-white shadow-soft transition hover:opacity-90 hover:shadow-xl hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-purple-200">
@@ -221,7 +212,7 @@
                                 <div
                                     class="items-center gap-2 rounded-full bg-white/50 px-4 py-2 shadow-sm backdrop-blur">
                                     <span data-lucide="shield" class="h-4 w-4"></span>
-                                    <span>Seguro e sem cadastro</span>
+                                    <span>Projeto demonstrativo</span>
                                 </div>
                             </div>
                         </div>
@@ -322,8 +313,8 @@
                             <h3 class="mt-6 text-lg font-semibold tracking-tight text-slate-900">Privacidade em primeiro
                                 lugar</h3>
                             <p class="mt-2 text-sm leading-relaxed text-slate-500">
-                                Suas chaves ficam no seu navegador. Nenhum dado é armazenado permanentemente no
-                                servidor.
+                                A versão pública demonstra a interface sem solicitar chaves, senhas ou outras
+                                credenciais do visitante.
                             </p>
                         </article>
                     </div>
@@ -427,13 +418,11 @@
         </footer>
     </div>
 
-    <script src="https://upload-widget.cloudinary.com/latest/global/all.js" type="text/javascript"></script>
     <script>
         const el = {
             status: document.getElementById('status'),
             video: document.getElementById('video'),
             placeholder: document.getElementById('videoPlaceholder'),
-            apiKey: document.getElementById('apiKey'),
             button: document.getElementById('uploadWidget'),
             themeToggle: document.getElementById('themeToggle')
         }
@@ -505,47 +494,9 @@
                 return response.text()
             },
             getViralMoment: async () => {
-                const transcription = await app.getTranscription()
-                const model = 'gemini-3-flash-preview'
-                const endPointGemini = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
-
-                const prompt = `Role: You are a professional video editor specializing in viral content.\nTask: Analyze the transcription below and identify the most engaging, funny, or surprising segment.\nConstraints:\n1. Duration: Minimum 30 seconds, Maximum 60 seconds.\n2. Format: Return ONLY the start and end string for Cloudinary. Format: so_<start_seconds>,eo_<end_seconds>\n3. Examples: "so_10,eo_20" or "so_12.5,eo_45.2"\n4. CRITICAL: Do not use markdown, do not use quotes, do not explain. Return ONLY the raw string.\n\nTranscription: ${transcription}`
-
-                const headers = {
-                    'x-goog-api-key': el.apiKey.value,
-                    'Content-Type': 'application/json'
-                }
-
-                const contents = [{ parts: [{ text: prompt }] }]
-
-                const maxAttempts = 3
-                const delay = 1500
-
-                for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-                    try {
-                        log(`Solicitando trecho viral...`)
-                        const response = await fetch(endPointGemini, {
-                            method: 'POST',
-                            headers,
-                            body: JSON.stringify({ contents })
-                        })
-
-                        if (!response.ok) {
-                            throw new Error(`HTTP ${response.status}`)
-                        }
-
-                        const data = await response.json()
-                        const rawText = data.candidates[0].content.parts[0].text
-                        return rawText.replace(/```/g, '').replace(/json/g, '').trim()
-                    } catch (error) {
-                        const isLastAttempt = attempt === maxAttempts
-                        log(`Gemini falhou (tentativa ${attempt}/${maxAttempts}): ${error.message}`)
-                        if (isLastAttempt) {
-                            throw error
-                        }
-                        await new Promise((resolve) => setTimeout(resolve, delay))
-                    }
-                }
+                // Recurso desativado na demonstração pública.
+                // A versão publicada não solicita nem processa credenciais do visitante.
+                throw new Error('Análise por IA disponível apenas na versão local do projeto.')
             }
         }
 
@@ -554,34 +505,10 @@
             uploadPreset: 'upload_nlw'
         }
 
-        const myWidget = cloudinary.createUploadWidget(config, async (error, result) => {
-            if (!error && result && result.event === 'success') {
-                log('Upload concluído – processando vídeo...')
-                app.public_id = result.info.public_id
-                try {
-                    const isReady = await app.waitForTranscription()
-                    if (!isReady) {
-                        throw new Error('Erro ao buscar transcrição')
-                    }
-
-                    const viralMoment = await app.getViralMoment()
-                    const viralMomentURL = `https://res.cloudinary.com/${config.cloudName}/video/upload/${viralMoment}/${app.public_id}.mp4`
-                    el.video.setAttribute('src', viralMomentURL)
-                    updateVideoPlaceholder()
-                    log('Vídeo pronto — divirta-se!')
-                } catch (error) {
-                    log(`Erro: ${error.message || error}`)
-                }
-            }
-        })
-
+        // Na demonstração pública, o botão é mantido apenas para preservar o layout.
+        // Nenhuma credencial é solicitada e nenhum vídeo é enviado/processado.
         el.button.addEventListener('click', function () {
-            if (!el.apiKey.value) {
-                alert('Por favor, insira sua API do Gemini primeiro.')
-                el.apiKey.focus()
-                return
-            }
-            myWidget.open()
+            log('Demonstração pública: processamento de vídeo desativado. Consulte o repositório para executar a versão local.')
         })
 
         const themeIcon = document.getElementById('themeIcon')
